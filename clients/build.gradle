@@ -3,6 +3,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.7.RELEASE'
     id 'net.corda.plugins.quasar-utils'
     id 'net.corda.plugins.cordformation'
+    id 'java'
 }
 
 ext {
@@ -81,3 +82,11 @@ task runPartyBServer(type: JavaExec, dependsOn: jar) {
     main = 'com.example.server.ServerKt'
     args '--server.port=50007', '--config.rpc.host=localhost', '--config.rpc.port=10013', '--config.rpc.username=user1', '--config.rpc.password=test'
 }*/
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.mypackage.MyClass'
+        )
+    }
+}
+

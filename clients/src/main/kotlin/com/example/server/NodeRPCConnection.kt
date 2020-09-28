@@ -39,7 +39,6 @@ open class NodeRPCConnection(
 
     @PostConstruct
     fun initialiseNodeRPCConnection() {
-
         val rpcAddress = NetworkHostAndPort(host, rpcPort)
         val rpcClient = CordaRPCClient(rpcAddress)
         val rpcConnection = rpcClient.start(username, password)
@@ -50,8 +49,4 @@ open class NodeRPCConnection(
     fun close() {
         rpcConnection.notifyServerAndClose()
     }
-
-
-
-
 }

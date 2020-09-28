@@ -4,9 +4,8 @@ package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.example.contract.IOUContract
-import com.example.flow.ExampleFlow.Acceptor
-import com.example.flow.ExampleFlow.Initiator
 import com.example.flow.service.ExchangeRateFinder
+import com.example.schema.IOUSchemaV1
 import com.example.state.IOUState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.requireThat
@@ -14,13 +13,11 @@ import net.corda.core.crypto.TransactionSignature
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.services.Vault
-import net.corda.core.node.services.vault.QueryCriteria
-import net.corda.core.transactions.FilteredTransaction
+import net.corda.core.node.services.vault.*
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.ProgressTracker.Step
-import net.corda.core.utilities.unwrap
 import java.security.InvalidParameterException
 import java.util.*
 import java.util.function.Predicate
@@ -77,15 +74,24 @@ object ConsumeFlow {
             // Obtain a reference to the notary we want to use.
             val notary = serviceHub.networkMapCache.notaryIdentities[0]
             val oracleParty = serviceHub.identityService.partiesFromName("Oracle", false).single()
-            // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
-            val iouState = serviceHub.vaultService.queryBy(IOUState::class.java,QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).states.last()
-            println(iouState.state.encumbrance)
+//            val iouState = serviceHub.vaultService.queryBy(IOUState::class.java,QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED,relevancyStatus = Vault.RelevancyStatus.RELEVANT)).states.last()
+            val iouState2 = serviceHub.vaultService.queryBy(IOUState::class.java,QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED,relevancyStatus = Vault.RelevancyStatus.RELEVANT)).states.last()
+//            println(iouState.state.encumbrance)
+
+            val results = builder {
+                val firstNameIndex = IOUSchemaV1.PersistentIOU::borrowerName.equal(otherParty.name.toString())
+                val firstNameCriteria = QueryCriteria.VaultCustomQueryCriteria(firstNameIndex)
+                val criteria = firstNameCriteria.and(firstNameCriteria)
+                serviceHub.vaultService.queryBy(IOUState::class.java, criteria)
+            }
+            val iouState =results.states.last()
             val txCommand = Command(IOUContract.Commands.Consume(), listOf(otherParty.owningKey, serviceHub.myInfo.legalIdentities.first().owningKey))
             val txBuilder = TransactionBuilder(notary, UUID.randomUUID())
                     .addInputState(iouState)
                     .addCommand(txCommand)
+
             // Stage 2.
             progressTracker.currentStep = VERIFYING_TRANSACTION
             // Verify that the transaction is valid.
@@ -121,7 +127,6 @@ object ConsumeFlow {
     class Acceptor(val otherPartySession: FlowSession) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {
-
             val signTransactionFlow = object : SignTransactionFlow(otherPartySession) {
                 override fun checkTransaction(stx: SignedTransaction) = requireThat {
                 }

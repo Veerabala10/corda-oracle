@@ -21,6 +21,7 @@ import net.corda.core.schemas.QueryableState
  * @param lender the party issuing the IOU.
  * @param borrower the party receiving and approving the IOU.
  */
+// carState iouState and iouState2(l1)
 @BelongsToContract(IOUContract::class)
 data class IOUState(val value: Double,   // Value in currency Rupees(INR)
                     val currency : String,
@@ -30,6 +31,7 @@ data class IOUState(val value: Double,   // Value in currency Rupees(INR)
         LinearState, QueryableState {
     /** The public keys of the involved parties. */
     override val participants: List<AbstractParty> get() = listOf(lender, borrower)
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(IOUSchemaV1)
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when (schema) {
@@ -44,5 +46,5 @@ data class IOUState(val value: Double,   // Value in currency Rupees(INR)
         }
     }
 
-    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(IOUSchemaV1)
+
 }
